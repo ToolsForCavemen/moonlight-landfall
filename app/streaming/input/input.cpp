@@ -2,6 +2,7 @@
 #include "SDL_compat.h"
 #include "streaming/session.h"
 #include "settings/mappingmanager.h"
+#include "streaming/landfallkeys.h"
 #include "path.h"
 #include "utils.h"
 
@@ -289,6 +290,7 @@ void SdlInputHandler::notifyFocusGained()
 {
     // Landfall: lo que ya estaba apretado al recibir el foco no es para el host (ver m_LandfallHeldOnFocus).
     m_LandfallHeldOnFocus.clear();
+    LandfallKeys::load();
     int numKeys = 0;
     const Uint8* keyState = SDL_GetKeyboardState(&numKeys);
     for (int i = 0; i < numKeys; i++) {
@@ -333,7 +335,8 @@ void SdlInputHandler::updateKeyboardGrabState()
     // la tecla Windows) quedaban en el escritorio local. Alcanza con que la ventana tenga el foco.
     bool focused = (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_INPUT_FOCUS) != 0;
     bool shouldGrab = m_CaptureSystemKeysMode != StreamingPreferences::CSK_OFF &&
-                      (isCaptureActive() || (m_AbsoluteMouseMode && focused));
+                      (isCaptureActive() || (m_AbsoluteMouseMode && focused)) &&
+                      SDL_TICKS_PASSED(SDL_GetTicks(), m_LandfallLocalUntil);
     if (shouldGrab) {
         if (m_CaptureSystemKeysMode == StreamingPreferences::CSK_FULLSCREEN &&
             !landfallCoversDisplay(m_Window)) {

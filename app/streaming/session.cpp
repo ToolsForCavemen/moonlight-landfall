@@ -2,6 +2,7 @@
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "streaming/landfalldrop.h"
+#include "streaming/landfallkeys.h"
 #include "backend/richpresencemanager.h"
 
 #include <Limelight.h>
@@ -1778,6 +1779,24 @@ void Session::interrupt()
     SDL_PushEvent(&event);
 }
 
+// Landfall: con XWayland (Hyprland y otros), la ventana del video en un escritorio oculto sigue arriba de la pila de
+// X11 y recibe el mouse que pasa por otras ventanas X11 (Chrome, Nautilus) del escritorio visible: el puntero de la otra
+// PC se movia y hasta podia hacer clic. En X11, sin el foco del teclado, el mouse no es para el video (la soltura de un
+// boton si pasa, para que no quede apretado).
+static bool landfallPointerNotOurs()
+{
+    static int isX11 = -1;
+    if (isX11 < 0) {
+        const char* driver = SDL_GetCurrentVideoDriver();
+        isX11 = driver != nullptr && SDL_strcmp(driver, "x11") == 0;
+    }
+    if (!isX11) {
+        return false;
+    }
+    SDL_Window* focus = SDL_GetKeyboardFocus();
+    return focus == nullptr || !(SDL_GetWindowFlags(focus) & SDL_WINDOW_INPUT_FOCUS);
+}
+
 void Session::exec()
 {
     // If the connection failed, clean up and abort the connection.
@@ -1964,6 +1983,7 @@ void Session::exec()
     // Hijack this thread to be the SDL main thread. We have to do this
     // because we want to suspend all Qt processing until the stream is over.
     LandfallDrop::start();
+    LandfallKeys::load();
 
     SDL_Event event;
     for (;;) {
@@ -2017,6 +2037,12 @@ void Session::exec()
                 break;
             case SDL_CODE_FLUSH_WINDOW_EVENT_BARRIER:
                 m_FlushingWindowEventsRef--;
+                break;
+            case SDL_CODE_LANDFALL_REGRAB:
+                // Landfall: termino la pausa de una combinacion que se quedo en el equipo local.
+                if (m_InputHandler != nullptr) {
+                    m_InputHandler->updateKeyboardGrabState();
+                }
                 break;
             case SDL_CODE_GAMECONTROLLER_RUMBLE:
                 m_InputHandler->rumble((uint16_t)(uintptr_t)event.user.data1,
@@ -2263,13 +2289,22 @@ void Session::exec()
             break;
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
+            if (event.type == SDL_MOUSEBUTTONDOWN && landfallPointerNotOurs()) {
+                break;
+            }
             presence.runCallbacks();
             m_InputHandler->handleMouseButtonEvent(&event.button);
             break;
         case SDL_MOUSEMOTION:
+            if (landfallPointerNotOurs()) {
+                break;
+            }
             m_InputHandler->handleMouseMotionEvent(&event.motion);
             break;
         case SDL_MOUSEWHEEL:
+            if (landfallPointerNotOurs()) {
+                break;
+            }
             m_InputHandler->handleMouseWheelEvent(&event.wheel);
             break;
         case SDL_CONTROLLERAXISMOTION:

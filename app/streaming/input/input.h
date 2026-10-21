@@ -244,6 +244,13 @@ private:
     // Super+numero desde el escritorio). No se mandan al host, ni al soltarlas: si no, Windows ve un toque de la tecla
     // Windows y abre el menu Inicio.
     QSet<int> m_LandfallHeldOnFocus;
+    // Landfall: reglas de teclas (landfallkeys.h). Una combinacion ACA suelta el teclado hasta m_LandfallLocalUntil
+    // (SDL_GetTicks) para que el escritorio local reciba la que Landfall vuelve a apretar.
+    bool landfallKeepLocal(SDL_KeyboardEvent* event);
+    Uint32 m_LandfallLocalUntil = 0;
+    Uint32 m_LandfallLastTicks = 0;
+    QByteArray m_LandfallLastRule;
+    bool m_LandfallSynthetic = false;
     bool m_AbsoluteTouchMode;
     bool m_DisabledTouchFeedback;
 

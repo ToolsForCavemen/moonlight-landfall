@@ -1,4 +1,5 @@
 #include "streaming/session.h"
+#include "streaming/landfallkeys.h"
 
 #include <Limelight.h>
 #include "SDL_compat.h"
@@ -182,6 +183,65 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
     }
 }
 
+static Uint32 landfallRegrab(Uint32, void*)
+{
+    SDL_Event event = {};
+    event.type = SDL_USEREVENT;
+    event.user.code = SDL_CODE_LANDFALL_REGRAB;
+    SDL_PushEvent(&event);
+    return 0;
+}
+
+bool SdlInputHandler::landfallKeepLocal(SDL_KeyboardEvent* event)
+{
+    const LandfallKeys::Rule* rule = LandfallKeys::match(event->keysym.scancode, event->keysym.mod);
+    // Con el teclado suelto el escritorio local ya recibe sus atajos: si llego hasta aca, alla no hay a quien mas darsela.
+    if (rule == nullptr || !rule->local || !m_KeyboardCaptureActive) {
+        return false;
+    }
+    // La soltura de esta tecla tampoco es para el host.
+    m_LandfallHeldOnFocus.insert(event->keysym.scancode);
+    Uint32 now = SDL_GetTicks();
+    if (rule->text == m_LandfallLastRule && now - m_LandfallLastTicks < 1500) {
+        // La misma que Landfall acaba de volver a apretar (el escritorio no la uso): no se repite.
+        return true;
+    }
+    m_LandfallLastRule = rule->text;
+    m_LandfallLastTicks = now;
+
+    // Los modificadores ya bajaron en el host (Super, Ctrl...): se levantan alla y su soltura real se ignora.
+    static const SDL_Scancode modifiers[] = {
+        SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL, SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT,
+        SDL_SCANCODE_LALT, SDL_SCANCODE_RALT, SDL_SCANCODE_LGUI, SDL_SCANCODE_RGUI,
+    };
+    const Uint8* state = SDL_GetKeyboardState(nullptr);
+    for (SDL_Scancode m : modifiers) {
+        if (state[m] && !m_LandfallHeldOnFocus.contains(m)) {
+            SDL_KeyboardEvent up = {};
+            up.type = SDL_KEYUP;
+            up.state = SDL_RELEASED;
+            up.windowID = event->windowID;
+            up.keysym.scancode = m;
+            up.keysym.sym = SDL_GetKeyFromScancode(m);
+            up.keysym.mod = event->keysym.mod;
+            m_LandfallSynthetic = true;
+            handleKeyEvent(&up);
+            m_LandfallSynthetic = false;
+        }
+        if (state[m]) {
+            m_LandfallHeldOnFocus.insert(m);
+        }
+    }
+
+    // El teclado vuelve al escritorio un momento y Landfall aprieta la combinacion alla.
+    m_LandfallLocalUntil = now + 700;
+    updateKeyboardGrabState();
+    fprintf(stderr, "LANDFALL-TECLA %s\n", rule->text.constData());
+    fflush(stderr);
+    SDL_AddTimer(750, landfallRegrab, nullptr);
+    return true;
+}
+
 void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
 {
     short keyCode;
@@ -200,6 +260,11 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
         if (event->state == SDL_RELEASED) {
             m_LandfallHeldOnFocus.remove(event->keysym.scancode);
         }
+        return;
+    }
+
+    // Landfall: las combinaciones que el que trabaja quiere en su equipo no van al host.
+    if (!m_LandfallSynthetic && event->state == SDL_PRESSED && landfallKeepLocal(event)) {
         return;
     }
 
