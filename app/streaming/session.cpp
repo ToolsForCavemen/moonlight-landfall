@@ -1,6 +1,7 @@
 #include "session.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
+#include "streaming/landfalldrop.h"
 #include "backend/richpresencemanager.h"
 
 #include <Limelight.h>
@@ -1962,6 +1963,8 @@ void Session::exec()
 
     // Hijack this thread to be the SDL main thread. We have to do this
     // because we want to suspend all Qt processing until the stream is over.
+    LandfallDrop::start();
+
     SDL_Event event;
     for (;;) {
 #if SDL_VERSION_ATLEAST(2, 0, 18) && !defined(STEAM_LINK)
@@ -1995,6 +1998,10 @@ void Session::exec()
             continue;
         }
 #endif
+        if (LandfallDrop::handleEvent(&event, m_Window, m_StreamConfig.width, m_StreamConfig.height)) {
+            continue;
+        }
+
         switch (event.type) {
         case SDL_QUIT:
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
@@ -2308,6 +2315,8 @@ void Session::exec()
     }
 
 DispatchDeferredCleanup:
+    LandfallDrop::stop();
+
     // Switch back to synchronous logging mode
     StreamUtils::exitAsyncLoggingMode();
 

@@ -74,6 +74,10 @@ find $BUILD_FOLDER/app/Moonlight.app/ -name '*.dSYM' | xargs rm -rf
 if [ "$SIGNING_IDENTITY" != "" ]; then
   echo Signing app bundle
   codesign --force --deep --options runtime --timestamp --sign "$SIGNING_IDENTITY" $BUILD_FOLDER/app/Moonlight.app || fail "Signing failed!"
+else
+  # Landfall: macdeployqt breaks the linker's ad-hoc signature and Apple Silicon refuses to run unsigned code
+  echo Ad-hoc signing app bundle
+  codesign --force --deep --sign - $BUILD_FOLDER/app/Moonlight.app || fail "Ad-hoc signing failed!"
 fi
 
 echo Creating DMG

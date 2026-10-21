@@ -1,0 +1,56 @@
+---
+# Builds Moonlight with the Landfall changes (see LANDFALL.md) for Linux, Windows and macOS, reusing the upstream
+# build workflows. Pushing a tag landfall-* publishes a release with the three packages Landfall bundles.
+name: Landfall
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'landfall-*'
+  workflow_dispatch:
+
+jobs:
+  build-appimage:
+    uses: ./.github/workflows/build-appimage.yml
+    with:
+      ci_version: '6.2.0'
+
+  build-windows-macos:
+    uses: ./.github/workflows/build-win-mac.yml
+    with:
+      ci_version: '6.2.0'
+
+  release:
+    needs: [build-appimage, build-windows-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir out
+          cp artifacts/Moonlight-LinuxAppImage-6.2.0/Moonlight-6.2.0-x86_64.AppImage out/
+          # Same layout as the official portable zip: portable.dat keeps the settings next to Moonlight.exe
+          (cd artifacts/Moonlight-Windows-x64-6.2.0 && touch portable.dat && zip -qr ../../out/MoonlightPortable-x64-6.2.0.zip .)
+          cp artifacts/Moonlight-macOS-6.2.0/*.dmg out/Moonlight-6.2.0.dmg
+          (cd out && sha256sum * > SHA256SUMS.txt && ls -la)
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/landfall-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" \
+            --notes "Moonlight 6.2.0 with the Landfall changes (LANDFALL.md). Source: this tag."
+
+      - name: Upload packages (manual runs)
+        if: ${{ !startsWith(github.ref, 'refs/tags/landfall-') }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: landfall-packages
+          path: out/*
