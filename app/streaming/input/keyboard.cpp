@@ -183,6 +183,20 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
     }
 }
 
+// Landfall: si la tecla Windows esta apretada en el host y se va a soltar sola (al irse del video con Super+numero, o
+// con una combinacion que se queda en el equipo local), un toque de Ctrl antes evita que Windows abra el menu Inicio.
+static void landfallMaskWindowsKey(const QSet<uint32_t>& keysDown)
+{
+    for (auto keyDown : keysDown) {
+        short code = GET_KEYPRESS_CODE(keyDown) & 0xFF;
+        if (code == 0x5B || code == 0x5C) {
+            LiSendKeyboardEvent2(0x80A2, KEY_ACTION_DOWN, MODIFIER_META, 0);
+            LiSendKeyboardEvent2(0x80A2, KEY_ACTION_UP, MODIFIER_META, 0);
+            return;
+        }
+    }
+}
+
 static Uint32 landfallRegrab(Uint32, void*)
 {
     SDL_Event event = {};
@@ -215,6 +229,7 @@ bool SdlInputHandler::landfallKeepLocal(SDL_KeyboardEvent* event)
         SDL_SCANCODE_LALT, SDL_SCANCODE_RALT, SDL_SCANCODE_LGUI, SDL_SCANCODE_RGUI,
     };
     const Uint8* state = SDL_GetKeyboardState(nullptr);
+    landfallMaskWindowsKey(m_KeysDown);
     for (SDL_Scancode m : modifiers) {
         if (state[m] && !m_LandfallHeldOnFocus.contains(m)) {
             SDL_KeyboardEvent up = {};
@@ -596,6 +611,8 @@ void SdlInputHandler::raiseAllKeys()
     if (m_KeysDown.isEmpty()) {
         return;
     }
+
+    landfallMaskWindowsKey(m_KeysDown);
 
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                 "Raising %d keys",

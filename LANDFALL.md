@@ -26,6 +26,9 @@ with small changes for [Landfall](https://github.com/ToolsForCavemen), which bun
   `LANDFALL-TECLA <combination>` is written on stderr. Landfall then presses that combination on the local computer, so
   the local desktop runs its own shortcut. The file is re-read on focus gain. Code: `app/streaming/landfallkeys.cpp`,
   `landfallKeepLocal()` in `keyboard.cpp`.
+- **No Start menu when the Windows key is released alone:** when the stream releases a held Windows key on the host
+  (focus lost, or a combination kept on the local computer), a Ctrl tap is sent first so Windows doesn't open Start.
+  Code: `landfallMaskWindowsKey()` in `keyboard.cpp`.
 - **X11 pointer without focus is ignored:** under XWayland the stream window on a hidden workspace stays on top of the
   X11 stack and received the pointer moving over other X11 windows of the visible workspace, which moved (and could
   click) the remote pointer. With the x11 video driver, motion, button presses and wheel are dropped while the stream
