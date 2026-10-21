@@ -240,6 +240,10 @@ private:
     int m_StreamWidth;
     int m_StreamHeight;
     bool m_AbsoluteMouseMode;
+    // Landfall: teclas que ya estaban apretadas cuando la ventana recibio el foco (por ejemplo Super, al llegar con
+    // Super+numero desde el escritorio). No se mandan al host, ni al soltarlas: si no, Windows ve un toque de la tecla
+    // Windows y abre el menu Inicio.
+    QSet<int> m_LandfallHeldOnFocus;
     bool m_AbsoluteTouchMode;
     bool m_DisabledTouchFeedback;
 

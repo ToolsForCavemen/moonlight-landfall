@@ -195,6 +195,14 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
         return;
     }
 
+    // Landfall: teclas apretadas antes de recibir el foco: ni su pulsacion ni su liberacion van al host.
+    if (m_LandfallHeldOnFocus.contains(event->keysym.scancode)) {
+        if (event->state == SDL_RELEASED) {
+            m_LandfallHeldOnFocus.remove(event->keysym.scancode);
+        }
+        return;
+    }
+
     // Check for our special key combos
     if ((event->state == SDL_PRESSED) &&
             (event->keysym.mod & KMOD_CTRL) &&

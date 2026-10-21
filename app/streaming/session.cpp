@@ -2066,6 +2066,10 @@ void Session::exec()
             case SDL_WINDOWEVENT_LEAVE:
                 m_InputHandler->notifyMouseLeave();
                 break;
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                // Landfall: al entrar o salir de pantalla completa cambia quien se queda con los atajos del sistema.
+                m_InputHandler->updateKeyboardGrabState();
+                break;
             }
 
             presence.runCallbacks();

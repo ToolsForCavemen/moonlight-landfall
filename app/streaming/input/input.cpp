@@ -287,6 +287,34 @@ void SdlInputHandler::notifyFocusLost()
 
 void SdlInputHandler::notifyFocusGained()
 {
+    // Landfall: lo que ya estaba apretado al recibir el foco no es para el host (ver m_LandfallHeldOnFocus).
+    m_LandfallHeldOnFocus.clear();
+    int numKeys = 0;
+    const Uint8* keyState = SDL_GetKeyboardState(&numKeys);
+    for (int i = 0; i < numKeys; i++) {
+        if (keyState[i]) {
+            m_LandfallHeldOnFocus.insert(i);
+        }
+    }
+
+    updateKeyboardGrabState();
+}
+
+// Landfall: true si la ventana ocupa toda su pantalla (pantalla completa propia o puesta por el escritorio, como en
+// Hyprland, que SDL no siempre marca como SDL_WINDOW_FULLSCREEN).
+static bool landfallCoversDisplay(SDL_Window* window)
+{
+    if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) {
+        return true;
+    }
+    int display = SDL_GetWindowDisplayIndex(window);
+    SDL_Rect bounds;
+    int w, h;
+    if (display < 0 || SDL_GetDisplayBounds(display, &bounds) != 0) {
+        return false;
+    }
+    SDL_GetWindowSize(window, &w, &h);
+    return w >= bounds.w && h >= bounds.h;
 }
 
 bool SdlInputHandler::isCaptureActive()
@@ -301,11 +329,14 @@ bool SdlInputHandler::isCaptureActive()
 
 void SdlInputHandler::updateKeyboardGrabState()
 {
-    bool shouldGrab = m_CaptureSystemKeysMode != StreamingPreferences::CSK_OFF && isCaptureActive();
+    // Landfall: con el mouse absoluto (escritorio) la captura casi nunca esta "activa": los atajos del sistema (Alt+Tab,
+    // la tecla Windows) quedaban en el escritorio local. Alcanza con que la ventana tenga el foco.
+    bool focused = (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_INPUT_FOCUS) != 0;
+    bool shouldGrab = m_CaptureSystemKeysMode != StreamingPreferences::CSK_OFF &&
+                      (isCaptureActive() || (m_AbsoluteMouseMode && focused));
     if (shouldGrab) {
-        Uint32 windowFlags = SDL_GetWindowFlags(m_Window);
         if (m_CaptureSystemKeysMode == StreamingPreferences::CSK_FULLSCREEN &&
-            !(windowFlags & SDL_WINDOW_FULLSCREEN)) {
+            !landfallCoversDisplay(m_Window)) {
             // Ungrab if it's fullscreen only and we left fullscreen
             shouldGrab = false;
         }
