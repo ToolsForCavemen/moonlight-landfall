@@ -1863,7 +1863,8 @@ void Session::exec()
 #ifdef Q_OS_DARWIN
     std::string windowName = QString(m_Computer->name).toStdString();
 #else
-    std::string windowName = QString(m_Computer->name + " - Moonlight").toStdString();
+    // Landfall: the stream window is shown as part of Landfall.
+    std::string windowName = QString(m_Computer->name + " - Landfall").toStdString();
 #endif
 
     m_Window = SDL_CreateWindow(windowName.c_str(),

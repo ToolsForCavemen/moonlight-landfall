@@ -51,7 +51,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>VERSION</string>
 	<key>CFBundleDisplayName</key>
-	<string>Moonlight</string>
+	<string>Landfall Viewer</string>
+	<key>CFBundleName</key>
+	<string>Landfall Viewer</string>
     <key>LSApplicationCategoryType</key>
 	<string>public.app-category.games</string>
 </dict>

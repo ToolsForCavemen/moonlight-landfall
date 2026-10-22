@@ -5,6 +5,13 @@ with small changes for [Landfall](https://github.com/ToolsForCavemen), which bun
 
 ## Changes
 
+- **Shown as part of Landfall:** the names people see say Landfall: the stream window is "<computer> - Landfall", the
+  main window and menus are "Landfall Viewer" (`setApplicationDisplayName`), the Windows file description is
+  "Landfall Viewer" and the macOS bundle name "Landfall Viewer". The internal names stay (application and organization
+  name, desktop file / window class, executable name): the settings and the pairing with each computer are stored
+  under them. Credits and the GPL-3.0 license are unchanged. Code: `app/main.cpp`, `app/streaming/session.cpp`,
+  `app/Info.plist`, `app/app.pro`.
+
 - **Files dropped on the stream window** (from any file manager, on Linux X11/Wayland, Windows and macOS) are
   reported on stderr as one line, `LANDFALL-SOLTAR <x> <y> <path> [<path>...]`. `x` and `y` are thousandths of the
   remote screen, using the same video region as the absolute mouse mode. Each path is percent-encoded.

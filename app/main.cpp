@@ -431,6 +431,9 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
     QCoreApplication::setOrganizationDomain("moonlight-stream.com");
     QCoreApplication::setApplicationName("Moonlight");
+    // Landfall: the name people see (window titles, menus). The application name above stays as is: it's where the
+    // settings and the pairing with each computer are stored.
+    QGuiApplication::setApplicationDisplayName("Landfall Viewer");
 
     if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
