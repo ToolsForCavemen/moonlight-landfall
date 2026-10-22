@@ -9,7 +9,9 @@ with small changes for [Landfall](https://github.com/ToolsForCavemen), which bun
   main window and menus are "Landfall Viewer" (`setApplicationDisplayName`), the Windows file description is
   "Landfall Viewer" and the macOS bundle name "Landfall Viewer". The internal names stay (application and organization
   name, desktop file / window class, executable name): the settings and the pairing with each computer are stored
-  under them. Credits and the GPL-3.0 license are unchanged. Code: `app/main.cpp`, `app/streaming/session.cpp`,
+  under them. The icon is Landfall's (window, taskbar/Dock, Windows `.ico`, macOS `.icns`, Linux app icon): it replaces
+  `app/res/moonlight.svg`, `app/moonlight.ico`, `app/moonlight.icns` and `app/moonlight_wix.png` with the same file
+  names. Credits and the GPL-3.0 license are unchanged. Code: `app/main.cpp`, `app/streaming/session.cpp`,
   `app/Info.plist`, `app/app.pro`.
 
 - **Files dropped on the stream window** (from any file manager, on Linux X11/Wayland, Windows and macOS) are
