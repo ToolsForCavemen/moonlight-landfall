@@ -94,7 +94,7 @@ jobs:
         working-directory: deps/libva
         run: |
           ./autogen.sh
-          ./configure --enable-x11=yes --enable-glx=no --enable-drm=no --enable-wayland=no
+          ./configure --enable-x11=yes --enable-glx=no --enable-drm=no --enable-wayland=yes
           make -j$(nproc)
           sudo make install
 
