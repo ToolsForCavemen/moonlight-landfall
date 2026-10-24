@@ -39,14 +39,13 @@ export LDFLAGS=-flto=auto
 
 echo Configuring the project
 pushd $BUILD_FOLDER
-# Building with Wayland support will cause linuxdeploy to include libwayland-client.so in the AppImage.
-# Since we always use the host implementation of EGL, this can cause libEGL_mesa.so to fail to load due
-# to missing symbols from the host's version of libwayland-client.so that aren't present in the older
-# version of libwayland-client.so from our AppImage build environment. When this happens, EGL fails to
-# work even in X11. To avoid this, we will disable Wayland support for the AppImage.
+# Landfall: Wayland support is enabled (upstream disables it for the AppImage). Without it, Qt falls back to xcb,
+# Moonlight runs under XWayland and the video takes an extra compositing hop (and NVIDIA ends up on VDPAU instead
+# of Vulkan). Upstream's concern was linuxdeploy bundling an old libwayland-client.so that breaks the host's EGL:
+# we exclude every libwayland-*.so below so the host's copies are used, and ship the Qt Wayland platform plugins.
 #
 # We disable DRM support because linuxdeploy doesn't bundle the appropriate libraries for Qt EGLFS.
-qmake6 $SOURCE_ROOT/moonlight-qt.pro CONFIG+=disable-wayland CONFIG+=disable-libdrm PREFIX=$DEPLOY_FOLDER/usr DEFINES+=APP_IMAGE || fail "Qmake failed!"
+qmake6 $SOURCE_ROOT/moonlight-qt.pro CONFIG+=disable-libdrm PREFIX=$DEPLOY_FOLDER/usr DEFINES+=APP_IMAGE || fail "Qmake failed!"
 popd
 
 echo Compiling Moonlight in $BUILD_CONFIG configuration
@@ -128,6 +127,9 @@ pushd $INSTALLER_FOLDER
 # software decoding. The host always provides libva on systems where VA-API is
 # usable, so link against it at runtime instead (the AppRun shim above keeps a
 # bundled last-resort copy for hosts without libva).
+# Landfall: the Qt Wayland platform plugins (Qt only loads them from the AppImage's own plugin folder), and the
+# host's libwayland (see the qmake comment above).
+export EXTRA_QT_PLUGINS="platforms/libqwayland-egl.so;platforms/libqwayland-generic.so;wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration"
 VERSION=$VERSION $LINUXDEPLOY --appdir $DEPLOY_FOLDER \
   --library=/usr/local/lib/libSDL3.so.0 \
   --plugin qt \
@@ -136,6 +138,11 @@ VERSION=$VERSION $LINUXDEPLOY --appdir $DEPLOY_FOLDER \
   --exclude-library=libva-drm.so* \
   --exclude-library=libva-wayland.so* \
   --exclude-library=libva-x11.so* \
+  --exclude-library=libwayland-client.so* \
+  --exclude-library=libwayland-cursor.so* \
+  --exclude-library=libwayland-egl.so* \
+  --exclude-library=libwayland-server.so* \
+  --exclude-library=libdecor-0.so* \
   --output appimage || fail "linuxdeploy failed!"
 popd
 
