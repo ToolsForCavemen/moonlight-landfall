@@ -129,7 +129,8 @@ pushd $INSTALLER_FOLDER
 # bundled last-resort copy for hosts without libva).
 # Landfall: the Qt Wayland platform plugins (Qt only loads them from the AppImage's own plugin folder), and the
 # host's libwayland (see the qmake comment above).
-export EXTRA_QT_PLUGINS="platforms/libqwayland-egl.so;platforms/libqwayland-generic.so;wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration"
+export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
+export EXTRA_QT_MODULES="waylandcompositor"
 VERSION=$VERSION $LINUXDEPLOY --appdir $DEPLOY_FOLDER \
   --library=/usr/local/lib/libSDL3.so.0 \
   --plugin qt \
